@@ -16,3 +16,6 @@ redis==5.2.0
 
 # Monitoring and Logging
 prometheus-client==0.21.0
+
+# HTTP client for webhooks
+requests==2.31.0

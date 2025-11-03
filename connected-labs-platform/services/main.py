@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
+from typing import Optional
 import uvicorn
 import os
 
@@ -32,44 +33,235 @@ async def health_check():
         "version": "1.0.0"
     }
 
-# PLACEHOLDER: Log Collection Service
+# Log Collection Service
 @app.post("/api/logs/collect")
-async def collect_logs(logs: dict):
+async def collect_logs(request: dict):
     """
-    PLACEHOLDER: Collect logs from instruments in standardized format
+    Collect logs from instruments and store in database
+    Accepts single log or batch of logs
     """
-    return {
-        "placeholder": "Log collection will be implemented here",
-        "received_logs": len(logs.get('logs', [])),
-        "features": [
-            "Standardized log format conversion",
-            "Real-time log ingestion",
-            "Log validation and filtering",
-            "Metadata enrichment",
-            "Batch processing optimization"
-        ],
-        "status": "logs_queued_for_processing"
-    }
+    from database import insert_log, insert_logs_batch
+    
+    try:
+        # Handle both single log and batch formats
+        logs_to_insert = []
+        
+        if "logs" in request:
+            # Batch format: {"logs": [...]}
+            logs_to_insert = request["logs"]
+        elif "id" in request and "instrument_id" in request:
+            # Single log format
+            logs_to_insert = [request]
+        else:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid format. Expected 'logs' array or single log object"}
+            )
+        
+        # Insert logs into database
+        inserted_count = insert_logs_batch(logs_to_insert)
+        
+        return {
+            "success": True,
+            "received_logs": len(logs_to_insert),
+            "inserted_logs": inserted_count,
+            "timestamp": datetime.now().isoformat(),
+            "status": "logs_stored"
+        }
+    
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to store logs: {str(e)}"}
+        )
 
-# PLACEHOLDER: Anomaly Detection Service
+
+# Seed mock data endpoint
+@app.post("/api/logs/seed-mock-data")
+async def seed_mock_data(hours_back: int = 24, logs_per_hour: int = 20):
+    """
+    Seed database with mock historical logs for testing and demo
+    """
+    from mock_data_generator import generate_historical_logs, get_instrument_ids
+    from database import insert_logs_batch, init_database
+    
+    try:
+        # Initialize database if not exists
+        init_database()
+        
+        # Generate mock logs
+        logs = generate_historical_logs(
+            hours_back=hours_back,
+            logs_per_hour=logs_per_hour,
+            anomaly_probability=0.05
+        )
+        
+        # Insert into database
+        inserted_count = insert_logs_batch(logs)
+        
+        instrument_ids = get_instrument_ids()
+        
+        return {
+            "success": True,
+            "generated_logs": len(logs),
+            "inserted_logs": inserted_count,
+            "instruments": instrument_ids,
+            "hours_back": hours_back,
+            "logs_per_hour": logs_per_hour,
+            "timestamp": datetime.now().isoformat(),
+            "message": "Mock data seeded successfully"
+        }
+    
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to seed mock data: {str(e)}"}
+        )
+
+
+# Get logs endpoint
+@app.get("/api/logs")
+async def get_logs(
+    instrument_id: Optional[str] = None,
+    level: Optional[str] = None,
+    limit: int = 100
+):
+    """
+    Retrieve logs with optional filters
+    """
+    from database import get_recent_logs
+    
+    try:
+        logs = get_recent_logs(
+            instrument_id=instrument_id,
+            level=level,
+            limit=limit
+        )
+        
+        return {
+            "success": True,
+            "count": len(logs),
+            "logs": logs,
+            "timestamp": datetime.now().isoformat()
+        }
+    
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to retrieve logs: {str(e)}"}
+        )
+
+# Test endpoint to generate anomaly scenarios
+@app.post("/api/logs/generate-anomaly-scenario")
+async def generate_anomaly_scenario_endpoint(scenario: str = "temp_spike"):
+    """
+    Generate specific anomaly scenarios for testing
+    Available scenarios: temp_spike, error_burst, sensor_failure
+    """
+    from mock_data_generator import generate_anomaly_scenario
+    from database import insert_logs_batch, init_database
+    
+    try:
+        # Initialize database if not exists
+        init_database()
+        
+        # Generate anomaly scenario
+        logs = generate_anomaly_scenario(scenario=scenario)
+        
+        # Insert into database
+        inserted_count = insert_logs_batch(logs)
+        
+        return {
+            "success": True,
+            "scenario": scenario,
+            "generated_logs": len(logs),
+            "inserted_logs": inserted_count,
+            "timestamp": datetime.now().isoformat(),
+            "message": f"Anomaly scenario '{scenario}' generated successfully"
+        }
+    
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to generate anomaly scenario: {str(e)}"}
+        )
+
+
+# Anomaly Detection Service
 @app.post("/api/anomaly/detect")
-async def detect_anomalies(data: dict):
+async def detect_anomalies_endpoint(data: Optional[dict] = None):
     """
-    PLACEHOLDER: Detect anomalies in instrument data using ML models
+    Detect anomalies in instrument data using statistical methods
+    Can analyze specific instrument or all instruments
     """
-    return {
-        "placeholder": "Anomaly detection will be implemented here",
-        "instrument_id": data.get('instrument_id'),
-        "features": [
-            "Isolation Forest algorithm",
-            "Statistical anomaly detection", 
-            "Time-series anomaly detection",
-            "Multi-variate anomaly analysis",
-            "Custom model training"
-        ],
-        "anomalies_detected": 0,
-        "confidence": 0.0
-    }
+    import requests
+    from database import get_recent_logs, insert_anomaly, init_database
+    from anomaly_detector import detect_anomalies, analyze_instrument_health
+    from mock_data_generator import get_instrument_ids
+    
+    try:
+        # Initialize database if not exists
+        init_database()
+        
+        # Determine which instruments to analyze
+        instrument_ids = []
+        if data and "instrument_id" in data:
+            instrument_ids = [data["instrument_id"]]
+        else:
+            # Analyze all instruments
+            instrument_ids = get_instrument_ids()
+        
+        all_anomalies = []
+        health_reports = {}
+        
+        for instrument_id in instrument_ids:
+            # Get recent logs for this instrument
+            logs = get_recent_logs(
+                instrument_id=instrument_id,
+                limit=200  # Analyze last 200 logs
+            )
+            
+            if not logs:
+                continue
+            
+            # Run anomaly detection
+            anomalies = detect_anomalies(logs)
+            
+            # Store detected anomalies in database
+            for anomaly in anomalies:
+                insert_anomaly(anomaly)
+                all_anomalies.append(anomaly)
+                
+                # Send alert to gateway via webhook
+                try:
+                    gateway_url = os.getenv("GATEWAY_URL", "http://localhost:8081")
+                    requests.post(
+                        f"{gateway_url}/api/alerts",
+                        json=anomaly,
+                        timeout=2
+                    )
+                except Exception as webhook_error:
+                    print(f"Failed to send alert to gateway: {webhook_error}")
+            
+            # Analyze health
+            health = analyze_instrument_health(logs)
+            health_reports[instrument_id] = health
+        
+        return {
+            "success": True,
+            "instruments_analyzed": len(instrument_ids),
+            "anomalies_detected": len(all_anomalies),
+            "anomalies": all_anomalies,
+            "health_reports": health_reports,
+            "timestamp": datetime.now().isoformat(),
+            "detection_methods": ["temperature_anomaly", "error_burst", "rapid_change"]
+        }
+    
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Anomaly detection failed: {str(e)}"}
+        )
 
 # PLACEHOLDER: Smart Diagnosis Service
 @app.post("/api/diagnosis/analyze")
