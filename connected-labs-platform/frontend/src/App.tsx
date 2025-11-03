@@ -3,6 +3,8 @@ import './App.css';
 import ResponseFormatter from './components/ResponseFormatter';
 import AlertsPanel from './components/AlertsPanel';
 import LogsViewer from './components/LogsViewer';
+import DiagnosisPanel from './components/DiagnosisPanel';
+import InstrumentControl from './components/InstrumentControl';
 
 // Same API list as your original implementation
 const API_LIST = [
@@ -24,7 +26,7 @@ interface Instrument {
 }
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<'scanner' | 'api' | 'dashboard'>('scanner');
+  const [currentPage, setCurrentPage] = useState<'scanner' | 'api' | 'dashboard' | 'control'>('scanner');
   const [foundInstruments, setFoundInstruments] = useState<Instrument[]>([]);
   const [selectedInstrument, setSelectedInstrument] = useState<Instrument | null>(null);
   const [apiResponse, setApiResponse] = useState<string>('');
@@ -88,6 +90,12 @@ function App() {
     setApiResponse('');
   };
 
+  // Show Control page
+  const showControlPage = (instrument: Instrument) => {
+    setSelectedInstrument(instrument);
+    setCurrentPage('control');
+  };
+
   // API call - Enhanced with authentication and better error handling
   const callApi = async (apiName: string) => {
     if (!selectedInstrument) return;
@@ -148,12 +156,20 @@ function App() {
           >
             📊 Dashboard
           </button>
+          {selectedInstrument && (
+            <button 
+              className={`nav-button ${currentPage === 'control' ? 'active' : ''}`}
+              onClick={() => showControlPage(selectedInstrument)}
+            >
+              🎛️ Control
+            </button>
+          )}
         </nav>
       </header>
 
       <div className="container">
         {currentPage === 'dashboard' ? (
-          // Dashboard Page - Feature C: Log Collection & Anomaly Detection
+          // Dashboard Page - Features C & D: Log Collection, Anomaly Detection & Smart Diagnosis
           <div className="dashboard-page">
             <div className="dashboard-section">
               <AlertsPanel />
@@ -161,6 +177,20 @@ function App() {
             <div className="dashboard-section">
               <LogsViewer maxLogs={100} autoRefresh={true} refreshInterval={10000} />
             </div>
+            <div className="dashboard-section">
+              <DiagnosisPanel />
+            </div>
+          </div>
+        ) : currentPage === 'control' && selectedInstrument ? (
+          // Control Page - Feature B: Remote Instrument Control
+          <div className="control-page">
+            <InstrumentControl 
+              instrumentId={selectedInstrument.id}
+              instrumentName={`${selectedInstrument.model} (${selectedInstrument.ip})`}
+            />
+            <button className="back-button" onClick={goBack}>
+              Back to Scanner
+            </button>
           </div>
         ) : currentPage === 'scanner' ? (
           // Scanner Page - Enhanced UI but EXACT same functionality
@@ -179,13 +209,21 @@ function App() {
               )}
               
               {foundInstruments.map((instrument) => (
-                <button
-                  key={instrument.id}
-                  className="instrument-button"
-                  onClick={() => showApiPage(instrument)}
-                >
-                  {instrument.model} ({instrument.ip})
-                </button>
+                <div key={instrument.id} className="instrument-item">
+                  <button
+                    className="instrument-button"
+                    onClick={() => showApiPage(instrument)}
+                  >
+                    {instrument.model} ({instrument.ip})
+                  </button>
+                  <button
+                    className="instrument-control-button"
+                    onClick={() => showControlPage(instrument)}
+                    title="Remote Control"
+                  >
+                    🎛️
+                  </button>
+                </div>
               ))}
               
               {!isScanning && foundInstruments.length === 0 && (
