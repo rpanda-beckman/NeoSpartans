@@ -100,21 +100,185 @@ app.get('/api/monitoring/dashboard', (req, res) => {
   });
 });
 
-app.post('/api/control/instruments/:id/command', (req, res) => {
-  const { id } = req.params;
-  const { command, parameters } = req.body;
+// In-memory storage for control commands (for demo/MVP - use database in production)
+const controlCommands = new Map();
+
+// Parameter validation helper
+function validateCommandParameters(command, parameters) {
+  const validationRules = {
+    'set_temperature': {
+      required: ['value'],
+      ranges: { value: { min: -80, max: 300 } }
+    },
+    'set_pressure': {
+      required: ['value'],
+      ranges: { value: { min: 0, max: 1000 } }
+    },
+    'start': {
+      required: [],
+      ranges: {}
+    },
+    'stop': {
+      required: [],
+      ranges: {}
+    }
+  };
+
+  const rules = validationRules[command];
+  if (!rules) {
+    return { valid: false, error: `Unknown command: ${command}` };
+  }
+
+  // Check required parameters
+  for (const param of rules.required) {
+    if (parameters[param] === undefined) {
+      return { valid: false, error: `Missing required parameter: ${param}` };
+    }
+  }
+
+  // Check ranges
+  for (const [param, range] of Object.entries(rules.ranges)) {
+    const value = parameters[param];
+    if (value !== undefined) {
+      if (value < range.min || value > range.max) {
+        return { valid: false, error: `Parameter ${param} out of range (${range.min}-${range.max})` };
+      }
+    }
+  }
+
+  return { valid: true };
+}
+
+// Execute command asynchronously with mock execution
+async function executeCommandAsync(commandObj) {
+  console.log(`⚙️  Executing command ${commandObj.id}: ${commandObj.command} on instrument ${commandObj.instrumentId}`);
   
+  // Update status to executing
+  commandObj.status = 'executing';
+  io.emit('command-update', commandObj);
+  io.to(`instrument-${commandObj.instrumentId}`).emit('command-update', commandObj);
+
+  // Simulate execution time (1-3 seconds)
+  const executionTime = 1000 + Math.random() * 2000;
+  await new Promise(resolve => setTimeout(resolve, executionTime));
+
+  // Simulate random failures (10% chance)
+  const shouldFail = Math.random() < 0.1;
+
+  if (shouldFail) {
+    commandObj.status = 'failed';
+    commandObj.error = 'Simulated execution failure';
+    console.log(`❌ Command ${commandObj.id} failed: ${commandObj.error}`);
+  } else {
+    commandObj.status = 'completed';
+    commandObj.result = {
+      success: true,
+      message: `Command ${commandObj.command} completed successfully`,
+      executionTime: Math.round(executionTime)
+    };
+    console.log(`✅ Command ${commandObj.id} completed successfully`);
+  }
+
+  // Broadcast final status
+  io.emit('command-update', commandObj);
+  io.to(`instrument-${commandObj.instrumentId}`).emit('command-update', commandObj);
+
+  return commandObj;
+}
+
+app.post('/api/control/instruments/:id/command', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { command, parameters = {} } = req.body;
+
+    // Validate command and parameters
+    const validation = validateCommandParameters(command, parameters);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: validation.error,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Create command object
+    const commandId = `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const commandObj = {
+      id: commandId,
+      instrumentId: id,
+      command,
+      parameters,
+      timestamp: new Date().toISOString(),
+      status: 'pending',
+      result: null,
+      error: null
+    };
+
+    // Store command
+    controlCommands.set(commandId, commandObj);
+
+    // Return immediately with commandId
+    res.json({
+      success: true,
+      commandId,
+      message: 'Command queued for execution',
+      timestamp: new Date().toISOString()
+    });
+
+    // Execute asynchronously
+    executeCommandAsync(commandObj).catch(error => {
+      console.error(`Error executing command ${commandId}:`, error);
+      commandObj.status = 'failed';
+      commandObj.error = error.message;
+      io.emit('command-update', commandObj);
+    });
+
+  } catch (error) {
+    console.error('Error processing command:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process command',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Get command status
+app.get('/api/control/commands/:commandId', (req, res) => {
+  const { commandId } = req.params;
+  const command = controlCommands.get(commandId);
+
+  if (!command) {
+    return res.status(404).json({
+      success: false,
+      error: 'Command not found',
+      timestamp: new Date().toISOString()
+    });
+  }
+
   res.json({
-    placeholder: 'Remote instrument control will be implemented here',
-    instrumentId: id,
+    success: true,
     command,
-    parameters,
-    features: [
-      'Temperature adjustments',
-      'Operation start/stop controls',
-      'Parameter modifications',
-      'Safety interlocks'
-    ]
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Get all commands for an instrument
+app.get('/api/control/instruments/:id/commands', (req, res) => {
+  const { id } = req.params;
+  const { limit = 50 } = req.query;
+
+  const instrumentCommands = Array.from(controlCommands.values())
+    .filter(cmd => cmd.instrumentId === id)
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .slice(0, parseInt(limit));
+
+  res.json({
+    success: true,
+    count: instrumentCommands.length,
+    commands: instrumentCommands,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -320,6 +484,30 @@ io.on('connection', (socket) => {
     socket.emit('alerts-subscription-confirmed', {
       message: 'Subscribed to real-time alerts',
       recent_alerts_count: recentAlerts.length
+    });
+  });
+
+  // Subscribe to command updates for specific instrument
+  socket.on('subscribe-commands', (instrumentId) => {
+    console.log(`Client ${socket.id} subscribed to commands for instrument ${instrumentId}`);
+    socket.join(`commands-${instrumentId}`);
+    
+    // Send recent commands to new subscriber
+    const recentCommands = Array.from(controlCommands.values())
+      .filter(cmd => cmd.instrumentId === instrumentId)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 10);
+    
+    socket.emit('commands-history', {
+      instrumentId,
+      commands: recentCommands,
+      count: recentCommands.length
+    });
+    
+    socket.emit('commands-subscription-confirmed', {
+      message: 'Subscribed to command updates',
+      instrumentId,
+      recent_commands_count: recentCommands.length
     });
   });
 

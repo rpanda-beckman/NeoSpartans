@@ -67,6 +67,12 @@
   width: 100%;
 }
 
+/* Control page styles */
+.control-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -103,6 +109,12 @@
   margin: 0 auto;
 }
 
+.instrument-item {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
 .instrument-button {
   background: white;
   border: 2px solid #1976d2;
@@ -112,10 +124,28 @@
   cursor: pointer;
   font-size: 16px;
   transition: all 0.2s;
+  flex: 1;
 }
 
 .instrument-button:hover {
   background: #1976d2;
+  color: white;
+}
+
+.instrument-control-button {
+  background: white;
+  border: 2px solid #ff6b6b;
+  color: #ff6b6b;
+  padding: 15px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.2s;
+  min-width: 60px;
+}
+
+.instrument-control-button:hover {
+  background: #ff6b6b;
   color: white;
 }
 
