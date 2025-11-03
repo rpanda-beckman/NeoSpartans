@@ -16,8 +16,55 @@
 }
 
 .App-header p {
-  margin: 0;
+  margin: 0 0 15px 0;
   opacity: 0.9;
+}
+
+/* Navigation menu */
+.nav-menu {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  padding: 0 20px;
+}
+
+.nav-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.nav-button.active {
+  background: white;
+  color: #1976d2;
+  border-color: white;
+}
+
+/* Dashboard page styles */
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboard-section {
+  width: 100%;
 }
 
 .container {

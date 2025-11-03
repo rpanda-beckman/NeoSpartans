@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './App.css';
 import ResponseFormatter from './components/ResponseFormatter';
+import AlertsPanel from './components/AlertsPanel';
+import LogsViewer from './components/LogsViewer';
 
 // Same API list as your original implementation
 const API_LIST = [
@@ -22,7 +24,7 @@ interface Instrument {
 }
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<'scanner' | 'api'>('scanner');
+  const [currentPage, setCurrentPage] = useState<'scanner' | 'api' | 'dashboard'>('scanner');
   const [foundInstruments, setFoundInstruments] = useState<Instrument[]>([]);
   const [selectedInstrument, setSelectedInstrument] = useState<Instrument | null>(null);
   const [apiResponse, setApiResponse] = useState<string>('');
@@ -133,10 +135,34 @@ function App() {
       <header className="App-header">
         <h1>Connected Labs Network Scanner</h1>
         <p>Enhanced platform with monitoring capabilities</p>
+        <nav className="nav-menu">
+          <button 
+            className={`nav-button ${currentPage === 'scanner' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('scanner')}
+          >
+            🔍 Scanner
+          </button>
+          <button 
+            className={`nav-button ${currentPage === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('dashboard')}
+          >
+            📊 Dashboard
+          </button>
+        </nav>
       </header>
 
       <div className="container">
-        {currentPage === 'scanner' ? (
+        {currentPage === 'dashboard' ? (
+          // Dashboard Page - Feature C: Log Collection & Anomaly Detection
+          <div className="dashboard-page">
+            <div className="dashboard-section">
+              <AlertsPanel />
+            </div>
+            <div className="dashboard-section">
+              <LogsViewer maxLogs={100} autoRefresh={true} refreshInterval={10000} />
+            </div>
+          </div>
+        ) : currentPage === 'scanner' ? (
           // Scanner Page - Enhanced UI but EXACT same functionality
           <div id="scanner">
             <button 
