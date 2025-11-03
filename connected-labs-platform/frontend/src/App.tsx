@@ -3,6 +3,7 @@ import './App.css';
 import ResponseFormatter from './components/ResponseFormatter';
 import AlertsPanel from './components/AlertsPanel';
 import LogsViewer from './components/LogsViewer';
+import DiagnosisPanel from './components/DiagnosisPanel';
 
 // Same API list as your original implementation
 const API_LIST = [
@@ -153,13 +154,16 @@ function App() {
 
       <div className="container">
         {currentPage === 'dashboard' ? (
-          // Dashboard Page - Feature C: Log Collection & Anomaly Detection
+          // Dashboard Page - Features C & D: Log Collection, Anomaly Detection & Smart Diagnosis
           <div className="dashboard-page">
             <div className="dashboard-section">
               <AlertsPanel />
             </div>
             <div className="dashboard-section">
               <LogsViewer maxLogs={100} autoRefresh={true} refreshInterval={10000} />
+            </div>
+            <div className="dashboard-section">
+              <DiagnosisPanel />
             </div>
           </div>
         ) : currentPage === 'scanner' ? (

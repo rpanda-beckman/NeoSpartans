@@ -263,26 +263,62 @@ async def detect_anomalies_endpoint(data: Optional[dict] = None):
             content={"error": f"Anomaly detection failed: {str(e)}"}
         )
 
-# PLACEHOLDER: Smart Diagnosis Service
+# Smart Diagnosis Service
 @app.post("/api/diagnosis/analyze")
-async def analyze_symptoms(symptoms: dict):
+async def analyze_diagnosis(request: dict):
     """
-    PLACEHOLDER: AI-powered diagnosis of instrument issues
+    AI-powered diagnosis of instrument issues using rule-based engine
+    Accepts symptoms, error codes, and analyzes recent logs
     """
-    return {
-        "placeholder": "Smart diagnosis will be implemented here",
-        "instrument_id": symptoms.get('instrument_id'),
-        "features": [
-            "Natural language processing of error descriptions",
-            "Historical pattern analysis",
-            "Knowledge base integration",
-            "Expert system reasoning",
-            "Machine learning based diagnosis"
-        ],
-        "diagnosis_id": f"diag_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-        "probable_causes": [],
-        "recommended_actions": []
-    }
+    from diagnosis_engine import diagnose_instrument
+    from database import get_recent_logs, init_database
+    
+    try:
+        # Initialize database if not exists
+        init_database()
+        
+        # Extract request parameters
+        instrument_id = request.get("instrument_id")
+        symptoms = request.get("symptoms", [])
+        error_codes = request.get("error_codes", [])
+        
+        if not instrument_id:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "instrument_id is required"}
+            )
+        
+        if not symptoms and not error_codes:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "At least one symptom or error code is required"}
+            )
+        
+        # Get recent logs for this instrument
+        recent_logs = get_recent_logs(
+            instrument_id=instrument_id,
+            limit=50
+        )
+        
+        # Run diagnosis
+        diagnosis = diagnose_instrument(
+            instrument_id=instrument_id,
+            symptoms=symptoms,
+            error_codes=error_codes,
+            recent_logs=recent_logs
+        )
+        
+        return {
+            "success": True,
+            "diagnosis": diagnosis,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Diagnosis failed: {str(e)}"}
+        )
 
 # PLACEHOLDER: Analytics Service
 @app.get("/api/analytics/dashboard")
