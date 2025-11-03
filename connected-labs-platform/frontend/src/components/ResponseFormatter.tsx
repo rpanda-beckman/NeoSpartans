@@ -1,4 +1,5 @@
-import React from 'react';
+/// <reference types="react" />
+import * as React from 'react';
 import './ResponseFormatter.css';
 
 interface ParsedData {
@@ -14,7 +15,7 @@ interface ResponseFormatterProps {
   apiName: string;
 }
 
-export const ResponseFormatter: React.FC<ResponseFormatterProps> = ({ response, apiName }) => {
+export default function ResponseFormatter({ response, apiName }: ResponseFormatterProps) {
   const parseXmlResponse = (xmlText: string): ParsedData => {
     try {
       const parser = new DOMParser();
@@ -188,6 +189,4 @@ export const ResponseFormatter: React.FC<ResponseFormatterProps> = ({ response, 
     default:
       return renderTextView(response);
   }
-};
-
-export default ResponseFormatter;
+}
