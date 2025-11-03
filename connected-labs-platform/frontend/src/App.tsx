@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './App.css';
+import ResponseFormatter from './components/ResponseFormatter';
 
 // Same API list as your original implementation
 const API_LIST = [
@@ -25,6 +26,7 @@ function App() {
   const [foundInstruments, setFoundInstruments] = useState<Instrument[]>([]);
   const [selectedInstrument, setSelectedInstrument] = useState<Instrument | null>(null);
   const [apiResponse, setApiResponse] = useState<string>('');
+  const [currentApiName, setCurrentApiName] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
 
   // Network scanner - EXACT same functionality as your original implementation
@@ -84,20 +86,37 @@ function App() {
     setApiResponse('');
   };
 
-  // API call - EXACT same logic as your original implementation
+  // API call - Enhanced with authentication and better error handling
   const callApi = async (apiName: string) => {
     if (!selectedInstrument) return;
     
     try {
+      setCurrentApiName(apiName);
       setApiResponse('Loading...');
       
-      // Direct API call like original implementation
-      const response = await fetch(`http://${selectedInstrument.ip}:8080/DataService/${apiName}`);
-      const data = await response.json();
+      // Build headers with authentication for GetUserInfo
+      const headers: Record<string, string> = {
+        'x-target-url': `http://${selectedInstrument.ip}:8080`
+      };
       
-      setApiResponse(JSON.stringify(data, null, 2));
+      // Add authentication header for GetUserInfo API
+      if (apiName === 'GetUserInfo') {
+        headers['x-bci-LoggedInUserInfo'] = 'UserID:Administrator';
+      }
+      
+      // Make request through the enhanced gateway
+      const response = await fetch(`http://localhost:8081/DataService/${apiName}`, {
+        headers: headers
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.text();
+      setApiResponse(data);
     } catch (error) {
-      setApiResponse(`Error: ${error}`);
+      setApiResponse(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -106,6 +125,7 @@ function App() {
     setCurrentPage('scanner');
     setSelectedInstrument(null);
     setApiResponse('');
+    setCurrentApiName('');
   };
 
   return (
@@ -167,7 +187,10 @@ function App() {
             </div>
             
             <div className="response" id="apiResponse">
-              {apiResponse}
+              <ResponseFormatter 
+                response={apiResponse} 
+                apiName={currentApiName || 'API Response'} 
+              />
             </div>
             
             <button className="back-button" onClick={goBack}>

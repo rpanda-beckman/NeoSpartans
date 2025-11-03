@@ -43,15 +43,27 @@ app.use('/', (req, res, next) => {
     return next(); // Pass to next middleware if no target URL
   }
 
+  // Extract authentication headers for forwarding
+  const forwardHeaders = {};
+  if (req.headers['x-bci-loggedinuserinfo']) {
+    forwardHeaders['x-bci-LoggedInUserInfo'] = req.headers['x-bci-loggedinuserinfo'];
+  }
+
   // Use the exact same proxy logic as your original implementation
   createProxyMiddleware({
     target: targetUrl,
     changeOrigin: true,
+    onProxyReq: function(proxyReq, req, res) {
+      // Forward authentication headers to target instrument
+      Object.keys(forwardHeaders).forEach(key => {
+        proxyReq.setHeader(key, forwardHeaders[key]);
+      });
+    },
     onProxyRes: function(proxyRes, req, res) {
       // Ensure CORS headers are set exactly as in original
       proxyRes.headers['Access-Control-Allow-Origin'] = '*';
       proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE';
-      proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, x-target-url';
+      proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, x-target-url, x-bci-LoggedInUserInfo';
     },
     onError: function(err, req, res) {
       console.error('Proxy error:', err);
