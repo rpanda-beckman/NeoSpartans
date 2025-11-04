@@ -52,6 +52,7 @@ connected-labs-platform/
    ```bash
    cd services
    pip install -r requirements.txt
+   pip install fastapi uvicorn requests
    uvicorn main:app --reload
    ```
 

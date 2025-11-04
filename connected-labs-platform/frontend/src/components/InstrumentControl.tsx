@@ -24,7 +24,7 @@ const InstrumentControl = ({
 }: InstrumentControlProps) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [temperature, setTemperature] = useState<number>(25);
-  const [pressure, setPressure] = useState<number>(100);
+  const [speed, setSpeed] = useState<number>(500);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [commands, setCommands] = useState<ControlCommand[]>([]);
   const [message, setMessage] = useState<string>('');
@@ -122,8 +122,40 @@ const InstrumentControl = ({
     sendCommand('set_temperature', { value: temperature });
   };
 
-  const handleSetPressure = () => {
-    sendCommand('set_pressure', { value: pressure });
+  const handleSetSpeed = async () => {
+    // Validate speed range
+    if (speed < 500 || speed > 100000) {
+      showMessage('Speed must be between 500 and 100,000', 'error');
+      return;
+    }
+
+    try {
+      showMessage(`Setting speed to ${speed}...`, 'info');
+      
+      // Use instrumentId to dynamically determine the target instrument IP
+      const response = await fetch(`http://localhost:8081/api/proxy/setspeed/${instrumentId}/${speed}`, {
+        method: 'GET',
+      });
+
+      // Check if response is ok
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Server error' }));
+        showMessage(`Error: ${errorData.error || 'Failed to set speed'}`, 'error');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        showMessage(data.message || `Speed set successfully to ${speed}`, 'success');
+        console.log('SetSpeed response:', data);
+      } else {
+        showMessage(`Error: ${data.error || data.message || 'Failed to set speed'}`, 'error');
+      }
+    } catch (error) {
+      console.error('SetSpeed error:', error);
+      showMessage(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
   };
 
   const handleStart = () => {
@@ -192,26 +224,26 @@ const InstrumentControl = ({
         </div>
 
         <div className="control-panel">
-          <h3>Pressure Control</h3>
+          <h3>Speed Control</h3>
           <div className="control-input-group">
             <label>
-              Pressure (kPa):
+              Speed:
               <input
                 type="number"
-                value={pressure}
-                onChange={(e) => setPressure(Number(e.target.value))}
-                min="0"
-                max="1000"
-                step="10"
+                value={speed}
+                onChange={(e) => setSpeed(Number(e.target.value))}
+                min="500"
+                max="100000"
+                step="100"
               />
             </label>
-            <span className="range-hint">Range: 0 to 1000 kPa</span>
+            <span className="range-hint">Range: 500 to 100,000</span>
           </div>
           <button 
-            className="control-button pressure"
-            onClick={handleSetPressure}
+            className="control-button speed"
+            onClick={handleSetSpeed}
           >
-            💨 Set Pressure
+            � Set Speed
           </button>
         </div>
 

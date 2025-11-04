@@ -5,6 +5,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
+const axios = require('axios');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 require('dotenv').config();
 
@@ -98,6 +99,83 @@ app.get('/api/monitoring/dashboard', (req, res) => {
       'Historical trend data'
     ]
   });
+});
+
+// Speed Control Proxy - Forward SetSpeed1 requests to external instrument API
+// Endpoint accepts instrumentId and extracts IP from it
+app.get('/api/proxy/setspeed/:instrumentId/:value', async (req, res) => {
+  try {
+    const { instrumentId, value } = req.params;
+    
+    // Extract IP address from instrumentId
+    // instrumentId format: "10.122.72.12-1762246641337" or just "10.122.72.12"
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Validate speed value
+    const speedValue = parseInt(value);
+    if (isNaN(speedValue) || speedValue < 500 || speedValue > 100000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Speed value must be between 500 and 100,000',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🚀 Forwarding SetSpeed1 request to ${instrumentIp} with value: ${speedValue}`);
+
+    // Forward request to external instrument API with dynamic IP
+    const targetUrl = `http://${instrumentIp}:8080/DataService/SetSpeed1/${speedValue}`;
+    
+    const response = await axios.get(targetUrl, {
+      timeout: 10000, // 10 second timeout
+      responseType: 'text', // Expect text/XML response
+      validateStatus: function (status) {
+        return status < 500; // Accept any status code less than 500
+      }
+    });
+
+    console.log(`✅ SetSpeed1 response received from ${instrumentIp} - Status: ${response.status}`);
+    console.log(`📄 Response data (first 200 chars): ${response.data.substring(0, 200)}`);
+
+    // Check if response indicates success
+    // Most instrument APIs return 200 for success
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      speed: speedValue,
+      statusCode: response.status,
+      message: isSuccess ? `Speed successfully set to ${speedValue} on ${instrumentIp}` : 'Request completed with warnings',
+      responsePreview: response.data.substring(0, 500), // Include first 500 chars for debugging
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ SetSpeed1 proxy error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to set speed',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // In-memory storage for control commands (for demo/MVP - use database in production)

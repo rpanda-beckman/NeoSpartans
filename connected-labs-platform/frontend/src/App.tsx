@@ -40,7 +40,7 @@ function App() {
     
     // Same IP ranges as your original implementation
     const ips = ['localhost'];
-    for (let i = 40; i <= 50; i++) {
+    for (let i = 10; i <= 50; i++) {
       ips.push(`10.122.72.${i}`);
     }
 
