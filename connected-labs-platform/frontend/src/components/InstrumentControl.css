@@ -163,13 +163,22 @@
   background-color: #ff5252;
 }
 
-.control-button.pressure {
-  background-color: #4ecdc4;
+.control-button.speed {
+  background-color: #9b59b6;
   color: white;
 }
 
-.control-button.pressure:hover:not(:disabled) {
-  background-color: #45b7af;
+.control-button.speed:hover:not(:disabled) {
+  background-color: #8e44ad;
+}
+
+.control-button.runtime {
+  background-color: #f39c12;
+  color: white;
+}
+
+.control-button.runtime:hover:not(:disabled) {
+  background-color: #e67e22;
 }
 
 .control-button.start {

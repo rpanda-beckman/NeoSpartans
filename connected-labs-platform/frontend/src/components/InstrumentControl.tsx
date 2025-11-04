@@ -25,6 +25,7 @@ const InstrumentControl = ({
   const [socket, setSocket] = useState<Socket | null>(null);
   const [temperature, setTemperature] = useState<number>(25);
   const [speed, setSpeed] = useState<number>(500);
+  const [runtime, setRuntime] = useState<number>(50);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [commands, setCommands] = useState<ControlCommand[]>([]);
   const [message, setMessage] = useState<string>('');
@@ -118,8 +119,72 @@ const InstrumentControl = ({
     }
   };
 
-  const handleSetTemperature = () => {
-    sendCommand('set_temperature', { value: temperature });
+  const handleSetTemperature = async () => {
+    // Validate temperature range
+    if (temperature < -80 || temperature > 300) {
+      showMessage('Temperature must be between -80 and 300°C', 'error');
+      return;
+    }
+
+    try {
+      showMessage(`Setting temperature to ${temperature}°C...`, 'info');
+      
+      const response = await fetch(`http://localhost:8081/api/proxy/settemperature/${instrumentId}/${temperature}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Server error' }));
+        showMessage(`Error: ${errorData.error || 'Failed to set temperature'}`, 'error');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        showMessage(data.message || `Temperature set successfully to ${temperature}°C`, 'success');
+        console.log('SetTemperature response:', data);
+      } else {
+        showMessage(`Error: ${data.error || data.message || 'Failed to set temperature'}`, 'error');
+      }
+    } catch (error) {
+      console.error('SetTemperature error:', error);
+      showMessage(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
+  };
+
+  const handleSetRuntime = async () => {
+    // Validate runtime range
+    if (runtime < 1 || runtime > 1000) {
+      showMessage('Runtime must be between 1 and 1000', 'error');
+      return;
+    }
+
+    try {
+      showMessage(`Setting runtime to ${runtime}...`, 'info');
+      
+      const response = await fetch(`http://localhost:8081/api/proxy/setruntime/${instrumentId}/${runtime}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Server error' }));
+        showMessage(`Error: ${errorData.error || 'Failed to set runtime'}`, 'error');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        showMessage(data.message || `Runtime set successfully to ${runtime}`, 'success');
+        console.log('SetRuntime response:', data);
+      } else {
+        showMessage(`Error: ${data.error || data.message || 'Failed to set runtime'}`, 'error');
+      }
+    } catch (error) {
+      console.error('SetRuntime error:', error);
+      showMessage(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
   };
 
   const handleSetSpeed = async () => {
@@ -158,14 +223,62 @@ const InstrumentControl = ({
     }
   };
 
-  const handleStart = () => {
-    sendCommand('start');
-    setIsRunning(true);
+  const handleStart = async () => {
+    try {
+      showMessage('Starting operation...', 'info');
+      
+      const response = await fetch(`http://localhost:8081/api/proxy/startoperation/${instrumentId}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Server error' }));
+        showMessage(`Error: ${errorData.error || 'Failed to start operation'}`, 'error');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        showMessage(data.message || 'Operation started successfully', 'success');
+        setIsRunning(true);
+        console.log('StartOperation response:', data);
+      } else {
+        showMessage(`Error: ${data.error || data.message || 'Failed to start operation'}`, 'error');
+      }
+    } catch (error) {
+      console.error('StartOperation error:', error);
+      showMessage(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
   };
 
-  const handleStop = () => {
-    sendCommand('stop');
-    setIsRunning(false);
+  const handleStop = async () => {
+    try {
+      showMessage('Stopping operation...', 'info');
+      
+      const response = await fetch(`http://localhost:8081/api/proxy/stopoperation/${instrumentId}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Server error' }));
+        showMessage(`Error: ${errorData.error || 'Failed to stop operation'}`, 'error');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        showMessage(data.message || 'Operation stopped successfully', 'success');
+        setIsRunning(false);
+        console.log('StopOperation response:', data);
+      } else {
+        showMessage(`Error: ${data.error || data.message || 'Failed to stop operation'}`, 'error');
+      }
+    } catch (error) {
+      console.error('StopOperation error:', error);
+      showMessage(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -243,7 +356,31 @@ const InstrumentControl = ({
             className="control-button speed"
             onClick={handleSetSpeed}
           >
-            � Set Speed
+            ⚡ Set Speed
+          </button>
+        </div>
+
+        <div className="control-panel">
+          <h3>Runtime Control</h3>
+          <div className="control-input-group">
+            <label>
+              Runtime (minutes):
+              <input
+                type="number"
+                value={runtime}
+                onChange={(e) => setRuntime(Number(e.target.value))}
+                min="1"
+                max="1000"
+                step="1"
+              />
+            </label>
+            <span className="range-hint">Range: 1 to 1000 minutes</span>
+          </div>
+          <button 
+            className="control-button runtime"
+            onClick={handleSetRuntime}
+          >
+            ⏱️ Set Runtime
           </button>
         </div>
 

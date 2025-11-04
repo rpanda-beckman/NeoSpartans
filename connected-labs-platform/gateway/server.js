@@ -178,6 +178,272 @@ app.get('/api/proxy/setspeed/:instrumentId/:value', async (req, res) => {
   }
 });
 
+// Runtime Control Proxy - Forward SetRunTime1 requests to external instrument API
+app.get('/api/proxy/setruntime/:instrumentId/:value', async (req, res) => {
+  try {
+    const { instrumentId, value } = req.params;
+    
+    // Extract IP address from instrumentId
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Validate runtime value
+    const runtimeValue = parseInt(value);
+    if (isNaN(runtimeValue) || runtimeValue < 1 || runtimeValue > 1000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Runtime value must be between 1 and 1000',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🚀 Forwarding SetRunTime1 request to ${instrumentIp} with value: ${runtimeValue}`);
+
+    // Forward request to external instrument API
+    const targetUrl = `http://${instrumentIp}:8080/DataService/SetRunTime1/${runtimeValue}`;
+    
+    const response = await axios.get(targetUrl, {
+      timeout: 10000,
+      responseType: 'text',
+      validateStatus: function (status) {
+        return status < 500;
+      }
+    });
+
+    console.log(`✅ SetRunTime1 response received from ${instrumentIp} - Status: ${response.status}`);
+
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      runtime: runtimeValue,
+      statusCode: response.status,
+      message: isSuccess ? `Runtime successfully set to ${runtimeValue} on ${instrumentIp}` : 'Request completed with warnings',
+      responsePreview: response.data.substring(0, 500),
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ SetRunTime1 proxy error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to set runtime',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Temperature Control Proxy - Forward SetTemperature1 requests to external instrument API
+app.get('/api/proxy/settemperature/:instrumentId/:value', async (req, res) => {
+  try {
+    const { instrumentId, value } = req.params;
+    
+    // Extract IP address from instrumentId
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Validate temperature value
+    const temperatureValue = parseInt(value);
+    if (isNaN(temperatureValue) || temperatureValue < -80 || temperatureValue > 300) {
+      return res.status(400).json({
+        success: false,
+        error: 'Temperature value must be between -80 and 300',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🚀 Forwarding SetTemperature1 request to ${instrumentIp} with value: ${temperatureValue}`);
+
+    // Forward request to external instrument API
+    const targetUrl = `http://${instrumentIp}:8080/DataService/SetTemperature1/${temperatureValue}`;
+    
+    const response = await axios.get(targetUrl, {
+      timeout: 10000,
+      responseType: 'text',
+      validateStatus: function (status) {
+        return status < 500;
+      }
+    });
+
+    console.log(`✅ SetTemperature1 response received from ${instrumentIp} - Status: ${response.status}`);
+
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      temperature: temperatureValue,
+      statusCode: response.status,
+      message: isSuccess ? `Temperature successfully set to ${temperatureValue}°C on ${instrumentIp}` : 'Request completed with warnings',
+      responsePreview: response.data.substring(0, 500),
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ SetTemperature1 proxy error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to set temperature',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Start Operation Proxy - Forward StartOperation1 requests to external instrument API
+app.get('/api/proxy/startoperation/:instrumentId', async (req, res) => {
+  try {
+    const { instrumentId } = req.params;
+    
+    // Extract IP address from instrumentId
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🚀 Forwarding StartOperation1 request to ${instrumentIp}`);
+
+    // Forward request to external instrument API
+    const targetUrl = `http://${instrumentIp}:8080/DataService/StartOperation1`;
+    
+    const response = await axios.get(targetUrl, {
+      timeout: 10000,
+      responseType: 'text',
+      validateStatus: function (status) {
+        return status < 500;
+      }
+    });
+
+    console.log(`✅ StartOperation1 response received from ${instrumentIp} - Status: ${response.status}`);
+
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      statusCode: response.status,
+      message: isSuccess ? `Operation started successfully on ${instrumentIp}` : 'Request completed with warnings',
+      responsePreview: response.data.substring(0, 500),
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ StartOperation1 proxy error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start operation',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Stop Operation Proxy - Forward StopOperation1 requests to external instrument API
+app.get('/api/proxy/stopoperation/:instrumentId', async (req, res) => {
+  try {
+    const { instrumentId } = req.params;
+    
+    // Extract IP address from instrumentId
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🚀 Forwarding StopOperation1 request to ${instrumentIp}`);
+
+    // Forward request to external instrument API
+    const targetUrl = `http://${instrumentIp}:8080/DataService/StopOperation1`;
+    
+    const response = await axios.get(targetUrl, {
+      timeout: 10000,
+      responseType: 'text',
+      validateStatus: function (status) {
+        return status < 500;
+      }
+    });
+
+    console.log(`✅ StopOperation1 response received from ${instrumentIp} - Status: ${response.status}`);
+
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      statusCode: response.status,
+      message: isSuccess ? `Operation stopped successfully on ${instrumentIp}` : 'Request completed with warnings',
+      responsePreview: response.data.substring(0, 500),
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ StopOperation1 proxy error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to stop operation',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // In-memory storage for control commands (for demo/MVP - use database in production)
 const controlCommands = new Map();
 
