@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import optimaImg from './assets/Optima.png';
-import avantiImg from'./assets/Avanti.png';
+import avantiImg from './assets/Avanti.png';
+import viCellImg from './assets/ViCell.png';
 import './App.css';
 import ResponseFormatter from './components/ResponseFormatter';
 import AlertsPanel from './components/AlertsPanel';
@@ -70,10 +71,14 @@ function App() {
   const scanNetwork = async () => {
     setIsScanning(true);
     setFoundInstruments([]);
-    const ips = ['localhost'];
-    for (let i = 10; i <= 50; i++) {
-      ips.push(`10.122.72.${i}`);
-    }
+    const ips = [''];
+    // for (let i = 10; i <= 50; i++) {
+    //   ips.push(`10.122.72.${i}`);
+    // }
+    ips.push(`10.122.72.12`);
+    ips.push(`10.122.72.43`);
+    ips.push(`localhost`);
+
     const promises = ips.map(async (ip) => {
       try {
         const response = await fetch(`http://localhost:8081/DataService/GetSystemInfo`, {
@@ -89,6 +94,7 @@ function App() {
         // Assign Optima XPN if PreparatoryExtended
         let displayName = modelName;
         if (modelName === 'PreparatoryExtended') displayName = 'Optima XPN';
+        if (ip === 'localhost') displayName = 'Vi-CellBlu';
         if (displayName) {
           return {
             ip,
@@ -260,8 +266,10 @@ function App() {
                       let img = null;
                       let isOptima = instrument.model.startsWith('Optima');
                       let isAvanti = instrument.model.startsWith('Avanti');
+                      let isViCell = instrument.model.startsWith('Vi-CellBlu');
                       if (isOptima) img = optimaImg;
                       if (isAvanti) img = avantiImg;
+                      if (isViCell) img = viCellImg;
                       return (
                         <div key={instrument.id} className="instrument-item" style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 8px #0001', padding: '1.2rem 1.5rem', minWidth: 200, flex: '1 0 220px', maxWidth: 260, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', position: 'relative' }}>
                           {img && (
