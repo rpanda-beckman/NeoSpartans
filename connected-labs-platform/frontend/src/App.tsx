@@ -77,7 +77,7 @@ function App() {
     // }
     ips.push(`10.122.72.12`);
     ips.push(`10.122.72.43`);
-    ips.push(`localhost`);
+    ips.push(`10.122.72.15`);
 
     const promises = ips.map(async (ip) => {
       try {
@@ -94,7 +94,7 @@ function App() {
         // Assign Optima XPN if PreparatoryExtended
         let displayName = modelName;
         if (modelName === 'PreparatoryExtended') displayName = 'Optima XPN';
-        if (ip === 'localhost') displayName = 'Vi-CellBlu';
+        if (ip === '10.122.72.15') displayName = 'Vi-CellBlu';
         if (displayName) {
           return {
             ip,
