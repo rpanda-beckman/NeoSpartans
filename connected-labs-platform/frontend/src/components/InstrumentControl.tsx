@@ -18,6 +18,10 @@ interface InstrumentControlProps {
   instrumentName?: string;
 }
 
+
+// Global running status map (instrumentId -> boolean)
+const globalRunningStatus: Record<string, boolean> = {};
+
 const InstrumentControl = ({ 
   instrumentId, 
   instrumentName = 'Instrument' 
@@ -26,7 +30,7 @@ const InstrumentControl = ({
   const [temperature, setTemperature] = useState<number>(25);
   const [speed, setSpeed] = useState<number>(500);
   const [runtime, setRuntime] = useState<number>(50);
-  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [isRunning, setIsRunning] = useState<boolean>(globalRunningStatus[instrumentId] || false);
   const [commands, setCommands] = useState<ControlCommand[]>([]);
   const [message, setMessage] = useState<string>('');
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
@@ -241,7 +245,8 @@ const InstrumentControl = ({
 
       if (data.success) {
         showMessage(data.message || 'Operation started successfully', 'success');
-        setIsRunning(true);
+  setIsRunning(true);
+  globalRunningStatus[instrumentId] = true;
         console.log('StartOperation response:', data);
       } else {
         showMessage(`Error: ${data.error || data.message || 'Failed to start operation'}`, 'error');
@@ -270,7 +275,8 @@ const InstrumentControl = ({
 
       if (data.success) {
         showMessage(data.message || 'Operation stopped successfully', 'success');
-        setIsRunning(false);
+  setIsRunning(false);
+  globalRunningStatus[instrumentId] = false;
         console.log('StopOperation response:', data);
       } else {
         showMessage(`Error: ${data.error || data.message || 'Failed to stop operation'}`, 'error');
@@ -319,8 +325,11 @@ const InstrumentControl = ({
               Temperature (°C):
               <input
                 type="number"
-                value={temperature}
-                onChange={(e) => setTemperature(Number(e.target.value))}
+                value={Number.isNaN(temperature) ? '' : temperature}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setTemperature(val === '' ? NaN : Number(val));
+                }}
                 min="-80"
                 max="300"
                 step="1"
@@ -343,8 +352,11 @@ const InstrumentControl = ({
               Speed:
               <input
                 type="number"
-                value={speed}
-                onChange={(e) => setSpeed(Number(e.target.value))}
+                value={Number.isNaN(speed) ? '' : speed}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSpeed(val === '' ? NaN : Number(val));
+                }}
                 min="500"
                 max="100000"
                 step="100"
@@ -367,8 +379,11 @@ const InstrumentControl = ({
               Runtime (minutes):
               <input
                 type="number"
-                value={runtime}
-                onChange={(e) => setRuntime(Number(e.target.value))}
+                value={Number.isNaN(runtime) ? '' : runtime}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setRuntime(val === '' ? NaN : Number(val));
+                }}
                 min="1"
                 max="1000"
                 step="1"
