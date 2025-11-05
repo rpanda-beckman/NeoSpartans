@@ -65,6 +65,7 @@
   text-transform: uppercase;
   opacity: 0.9;
   font-weight: 500;
+  color: #fff !important;
 }
 
 .logs-controls {

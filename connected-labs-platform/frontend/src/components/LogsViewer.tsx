@@ -167,7 +167,7 @@ export default function LogsViewer({
     <div className="logs-viewer">
       <div className="logs-header">
         <div className="header-title">
-          <h2>📋 System Logs</h2>
+          <h1>📋 Instrument Logs</h1>
           <div className="last-update">
             Last updated: {formatRelativeTime(lastUpdate.toISOString())}
           </div>

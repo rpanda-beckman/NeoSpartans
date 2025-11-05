@@ -201,7 +201,7 @@ export default function DiagnosisPanel() {
   return (
     <div className="diagnosis-panel">
       <div className="diagnosis-header">
-        <h2>🔬 Smart Diagnosis Assistant</h2>
+        <h1>🔬 Smart Diagnosis Assistant</h1>
         <p>Analyze instrument symptoms and receive AI-powered recommendations</p>
       </div>
 
