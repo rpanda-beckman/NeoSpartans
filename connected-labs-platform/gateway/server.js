@@ -444,6 +444,465 @@ app.get('/api/proxy/stopoperation/:instrumentId', async (req, res) => {
   }
 });
 
+// ============================================================================
+// VI-CELL BLU API ENDPOINTS
+// ============================================================================
+
+// Vi-CELL BLU System Info - Get instrument system information
+app.get('/api/vi-cell/system-info/:instrumentId', async (req, res) => {
+  try {
+    const { instrumentId } = req.params;
+    
+    // Extract IP address from instrumentId
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🔍 Fetching Vi-CELL BLU system info from ${instrumentIp}`);
+
+    // Forward request to Vi-CELL BLU API
+    const targetUrl = `http://${instrumentIp}:8080/ViCellBlu/v1/system/info`;
+    
+    const response = await axios.get(targetUrl, {
+      timeout: 10000,
+      headers: {
+        'Accept': 'application/json'
+      },
+      validateStatus: function (status) {
+        return status < 500;
+      }
+    });
+
+    console.log(`✅ Vi-CELL BLU system info received from ${instrumentIp} - Status: ${response.status}`);
+
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      systemInfo: response.data,
+      statusCode: response.status,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Vi-CELL BLU system info error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get system info',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Vi-CELL BLU Instrument Status - Get current instrument status
+app.get('/api/vi-cell/status/:instrumentId', async (req, res) => {
+  try {
+    const { instrumentId } = req.params;
+    
+    // Extract IP address from instrumentId
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🔍 Fetching Vi-CELL BLU status from ${instrumentIp}`);
+
+    // Forward request to Vi-CELL BLU API
+    const targetUrl = `http://${instrumentIp}:8080/ViCellBlu/v1/instrument/status`;
+    
+    const response = await axios.get(targetUrl, {
+      timeout: 10000,
+      headers: {
+        'Accept': 'application/json'
+      },
+      validateStatus: function (status) {
+        return status < 500;
+      }
+    });
+
+    console.log(`✅ Vi-CELL BLU status received from ${instrumentIp} - Status: ${response.status}`);
+
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      status: response.data,
+      statusCode: response.status,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Vi-CELL BLU status error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get instrument status',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Vi-CELL BLU Recent Results - Get recent analysis results
+app.get('/api/vi-cell/results/recent/:instrumentId', async (req, res) => {
+  try {
+    const { instrumentId } = req.params;
+    const { limit = 10 } = req.query;
+    
+    // Extract IP address from instrumentId
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🔍 Fetching Vi-CELL BLU recent results from ${instrumentIp} (limit: ${limit})`);
+
+    // Forward request to Vi-CELL BLU API
+    const targetUrl = `http://${instrumentIp}:8080/ViCellBlu/v1/results/recent?limit=${limit}`;
+    
+    const response = await axios.get(targetUrl, {
+      timeout: 10000,
+      headers: {
+        'Accept': 'application/json'
+      },
+      validateStatus: function (status) {
+        return status < 500;
+      }
+    });
+
+    console.log(`✅ Vi-CELL BLU results received from ${instrumentIp} - Status: ${response.status}`);
+
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      results: response.data,
+      statusCode: response.status,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Vi-CELL BLU results error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get results',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Vi-CELL BLU Sample Status - Get status of a specific sample
+app.get('/api/vi-cell/sample/:instrumentId/:sampleId/status', async (req, res) => {
+  try {
+    const { instrumentId, sampleId } = req.params;
+    
+    // Extract IP address from instrumentId
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🔍 Fetching Vi-CELL BLU sample status for ${sampleId} from ${instrumentIp}`);
+
+    // Forward request to Vi-CELL BLU API
+    const targetUrl = `http://${instrumentIp}:8080/ViCellBlu/v1/sample/${encodeURIComponent(sampleId)}/status`;
+    
+    const response = await axios.get(targetUrl, {
+      timeout: 10000,
+      headers: {
+        'Accept': 'application/json'
+      },
+      validateStatus: function (status) {
+        return status < 500;
+      }
+    });
+
+    console.log(`✅ Vi-CELL BLU sample status received from ${instrumentIp} - Status: ${response.status}`);
+
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      sampleId,
+      sampleStatus: response.data,
+      statusCode: response.status,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Vi-CELL BLU sample status error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get sample status',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Vi-CELL BLU Sample Results - Get results of a specific sample
+app.get('/api/vi-cell/sample/:instrumentId/:sampleId/results', async (req, res) => {
+  try {
+    const { instrumentId, sampleId } = req.params;
+    
+    // Extract IP address from instrumentId
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🔍 Fetching Vi-CELL BLU sample results for ${sampleId} from ${instrumentIp}`);
+
+    // Forward request to Vi-CELL BLU API
+    const targetUrl = `http://${instrumentIp}:8080/ViCellBlu/v1/sample/${encodeURIComponent(sampleId)}/results`;
+    
+    const response = await axios.get(targetUrl, {
+      timeout: 10000,
+      headers: {
+        'Accept': 'application/json'
+      },
+      validateStatus: function (status) {
+        return status < 500;
+      }
+    });
+
+    console.log(`✅ Vi-CELL BLU sample results received from ${instrumentIp} - Status: ${response.status}`);
+
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      sampleId,
+      sampleResults: response.data,
+      statusCode: response.status,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Vi-CELL BLU sample results error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get sample results',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Vi-CELL BLU Start Analysis - Start a new sample analysis
+app.post('/api/vi-cell/sample/:instrumentId/analyze', async (req, res) => {
+  try {
+    const { instrumentId } = req.params;
+    const { sampleId, cellType, dilution, washType } = req.body;
+    
+    // Extract IP address from instrumentId
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Validate required parameters
+    if (!sampleId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Sample ID is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🚀 Starting Vi-CELL BLU analysis for sample ${sampleId} on ${instrumentIp}`);
+
+    // Forward request to Vi-CELL BLU API
+    const targetUrl = `http://${instrumentIp}:8080/ViCellBlu/v1/sample/analyze`;
+    
+    const response = await axios.post(targetUrl, {
+      sampleId,
+      cellType: cellType || 'default',
+      dilution: dilution || 1,
+      washType: washType || 'normal'
+    }, {
+      timeout: 10000,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      validateStatus: function (status) {
+        return status < 500;
+      }
+    });
+
+    console.log(`✅ Vi-CELL BLU analysis started on ${instrumentIp} - Status: ${response.status}`);
+
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      sampleId,
+      analysisStatus: response.data,
+      statusCode: response.status,
+      message: isSuccess ? `Analysis started for sample ${sampleId}` : 'Request completed with warnings',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Vi-CELL BLU start analysis error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start analysis',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Vi-CELL BLU Instrument Queue - Get current analysis queue
+app.get('/api/vi-cell/queue/:instrumentId', async (req, res) => {
+  try {
+    const { instrumentId } = req.params;
+    
+    // Extract IP address from instrumentId
+    let instrumentIp;
+    if (instrumentId.includes('-')) {
+      instrumentIp = instrumentId.split('-')[0];
+    } else {
+      instrumentIp = instrumentId;
+    }
+
+    // Validate IP address format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(instrumentIp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid instrument ID or IP address format',
+        instrumentId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🔍 Fetching Vi-CELL BLU queue from ${instrumentIp}`);
+
+    // Forward request to Vi-CELL BLU API
+    const targetUrl = `http://${instrumentIp}:8080/ViCellBlu/v1/instrument/queue`;
+    
+    const response = await axios.get(targetUrl, {
+      timeout: 10000,
+      headers: {
+        'Accept': 'application/json'
+      },
+      validateStatus: function (status) {
+        return status < 500;
+      }
+    });
+
+    console.log(`✅ Vi-CELL BLU queue received from ${instrumentIp} - Status: ${response.status}`);
+
+    const isSuccess = response.status >= 200 && response.status < 300;
+
+    res.json({
+      success: isSuccess,
+      instrumentIp,
+      queue: response.data,
+      statusCode: response.status,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Vi-CELL BLU queue error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get queue',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // In-memory storage for control commands (for demo/MVP - use database in production)
 const controlCommands = new Map();
 
