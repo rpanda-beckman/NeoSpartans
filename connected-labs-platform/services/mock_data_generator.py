@@ -44,6 +44,14 @@ INSTRUMENT_CONFIGS = [
         "normal_temp_mean": 37,
         "normal_temp_std": 0.5,
     },
+    {
+        "id": "avanti-centrifuge-01",
+        "model": "Beckman Coulter Avanti J-26S XP",
+        "type": "avanti_centrifuge",
+        "normal_temp_range": (2, 25),
+        "normal_temp_mean": 4,
+        "normal_temp_std": 3,
+    },
 ]
 
 # Log message templates
@@ -263,19 +271,28 @@ def generate_realtime_log_batch(count: int = 10) -> List[Dict[str, Any]]:
     return logs
 
 
-def generate_anomaly_scenario(scenario: str = "temp_spike") -> List[Dict[str, Any]]:
+def generate_anomaly_scenario(scenario: str = "temp_spike", instrument_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Generate a specific anomaly scenario for testing
     
     Args:
         scenario: Type of scenario (temp_spike, error_burst, sensor_failure)
+        instrument_id: Specific instrument ID to generate anomalies for
     
     Returns:
         List of log entries demonstrating the anomaly
     """
     logs = []
     now = datetime.now()
-    instrument = INSTRUMENT_CONFIGS[0]  # Use first instrument
+    
+    # Use specified instrument or default to first one
+    if instrument_id:
+        instrument = get_instrument_config(instrument_id)
+        if not instrument:
+            # If instrument not found, use first one
+            instrument = INSTRUMENT_CONFIGS[0]
+    else:
+        instrument = INSTRUMENT_CONFIGS[0]  # Use first instrument
     
     if scenario == "temp_spike":
         # Generate 10 logs showing temperature gradually spiking

@@ -187,7 +187,7 @@ function App() {
                 margin: 0
               }}
             >
-              Connected Labs Dashboard
+              LabPulse - Connected Labs
             </h1>
             <p
               style={{

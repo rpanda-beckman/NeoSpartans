@@ -153,7 +153,7 @@ async def get_logs(
 
 # Test endpoint to generate anomaly scenarios
 @app.post("/api/logs/generate-anomaly-scenario")
-async def generate_anomaly_scenario_endpoint(scenario: str = "temp_spike"):
+async def generate_anomaly_scenario_endpoint(scenario: str = "temp_spike", instrument_id: Optional[str] = None):
     """
     Generate specific anomaly scenarios for testing
     Available scenarios: temp_spike, error_burst, sensor_failure
@@ -166,7 +166,7 @@ async def generate_anomaly_scenario_endpoint(scenario: str = "temp_spike"):
         init_database()
         
         # Generate anomaly scenario
-        logs = generate_anomaly_scenario(scenario=scenario)
+        logs = generate_anomaly_scenario(scenario=scenario, instrument_id=instrument_id)
         
         # Insert into database
         inserted_count = insert_logs_batch(logs)
@@ -174,10 +174,11 @@ async def generate_anomaly_scenario_endpoint(scenario: str = "temp_spike"):
         return {
             "success": True,
             "scenario": scenario,
+            "instrument_id": instrument_id,
             "generated_logs": len(logs),
             "inserted_logs": inserted_count,
             "timestamp": datetime.now().isoformat(),
-            "message": f"Anomaly scenario '{scenario}' generated successfully"
+            "message": f"Anomaly scenario '{scenario}' generated successfully for instrument '{instrument_id or 'default'}'"
         }
     
     except Exception as e:
